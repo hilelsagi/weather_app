@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WeeklyWeather</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="{{ url_for('static', filename='sources/icon.webp') }}" />
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <!-- Font Awesome CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <style>
+    body {
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      color: white; /* Light text color */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+      transition: background-image 1s ease-in-out; /* Smooth transition for background change */
+    }
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 300; /* Lighter font weight */
+      color: rgba(255, 255, 255, 0.9); /* Light white text */
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Subtle text shadow */
+      margin-top: 20px;
+    }
+    .city-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+    }
+    .city-card {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: transform 0.3s;
+      position: relative;
+      border: 2px solid white; /* White border for the city buttons */
+    }
+    .city-card:hover {
+      transform: scale(1.1);
+    }
+    .city-card span {
+      position: relative;
+      z-index: 1;
+      color: white;
+      text-shadow: 
+        -1px -1px 0 #000,  
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000; /* Black outline for the text */
+    }
+    .search-circle {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent background */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      margin: 20px auto;
+    }
+    .search-circle input {
+      width: 80%;
+      padding: 8px;
+      border: none;
+      border-radius: 20px;
+      text-align: center;
+      outline: none;
+    }
+    .weather-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(26, 26, 46, 0.95); /* Dark semi-transparent background */
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+      width: 50%;
+      text-align: center;
+      transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      opacity: 0;
+      display: none;
+      backdrop-filter: blur(10px); /* Adds a blur effect to the background */
+      z-index: 1000; /* Ensure the popup is above all other elements */
+    }
+    .weather-container.show {
+      display: block;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      cursor: pointer;
+      font-size: 1.5rem;
+      background: none;
+      border: none;
+      color: white;
+    }
+    .weather-circle {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background-color: rgba(85, 85, 85, 0.8); /* Semi-transparent background */
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .weather-circle h5 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    .weather-circle p {
+      margin: 5px 0;
+      font-size: 1rem;
+    }
+    .weather-circle .icon {
+      font-size: 1.5rem;
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container text-center mt-4">
+    <h1>WeeklyWeather</h1>
+    <div class="search-circle">
+      <form id="searchForm" method="POST">
+        <input type="text" name="city" id="city" placeholder="Enter City" required />
+      </form>
+    </div>
+    <div class="city-container">
+      {% set city_images = {
+        "Tel Aviv": "https://wallpapers.com/images/hd/israel-tel-aviv-skyline-pyptld974nvsq3bz.jpg",
+        "Tokyo": "https://c0.wallpaperflare.com/preview/900/707/759/shinjuku-japan-night-tokyo.jpg",
+        "Delhi": "https://images.pexels.com/photos/1007426/pexels-photo-1007426.jpeg?cs=srgb&dl=pexels-jeswinthomas-1007426.jpg&fm=jpg",
+        "Sao Paulo": "https://wallpapers.com/images/hd/sao-paulo-brazil-sunset-cityscape-ebjtlapeynee12pl.jpg",
+        "New York": "https://images.pexels.com/photos/1389339/pexels-photo-1389339.jpeg?cs=srgb&dl=pexels-wildlittlethingsphoto-1389339.jpg&fm=jpg",
+        "Paris": "https://freedesignfile.com/upload/2016/12/Eiffel-Tower-in-Paris-HD-picture-01.jpg",
+        "London": "https://wallpapercat.com/w/full/b/5/1/292677-3840x2160-desktop-4k-london-background-image.jpg",
+        "Rome": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxkRq3mzpM5SF2RXbC2O25yOby9JMFjYCI4Q&s",
+        "Barcelona": "https://wallpapercat.com/w/full/b/5/1/292677-3840x2160-desktop-4k-london-background-image.jpg",
+        "Moscow": "https://c4.wallpaperflare.com/wallpaper/462/607/710/moscow-winter-cityscape-lights-wallpaper-preview.jpg",
+        "Toronto": "https://images.pexels.com/photos/935474/toronto-beauty-clouds-skyline-935474.jpeg",
+        "Beijing": "https://c4.wallpaperflare.com/wallpaper/906/109/267/5bd034a4aead7-wallpaper-preview.jpg",
+        "Shanghai": "https://t4.ftcdn.net/jpg/02/86/31/75/360_F_286317553_ApfLOFzSjv7rXt6aQ46TetRccdmIO25P.jpg",
+        "Los Angeles": "https://c1.wallpaperflare.com/preview/486/453/219/hollywood-sign-iconic-mountains-los-angeles.jpg",
+        "Chicago": "https://images.unsplash.com/photo-1494522855154-9297ac14b55f?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hpY2Fnb3xlbnwwfHwwfHx8MA%3D%3D",
+        "Sydney": "https://t4.ftcdn.net/jpg/02/86/31/75/360_F_286317553_ApfLOFzSjv7rXt6aQ46TetRccdmIO25P.jpg",
+        "Dubai": "https://c4.wallpaperflare.com/wallpaper/996/638/569/city-dubai-arabic-dream-burj-khalifa-united-arab-emirates-desktop-wallpaper-hd-2560%C3%971440-wallpaper-preview.jpg",
+        "Mumbai": "https://t4.ftcdn.net/jpg/01/46/43/87/360_F_146438747_3XYwVkfnYZuukBZYmDM8xeoqENzyhAqa.jpg"
+      } %}
+      {% for city, image_url in city_images.items() %}
+        <div class="city-card" onclick="fillSearch('{{ city }}')" style="background-image: url('{{ image_url }}');">
+          <span>{{ city }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="weatherContainer" class="weather-container">
+    <button class="close-btn" onclick="closeWeather()">&times;</button>
+    <div id="weatherContent">
+      {% if weather %}
+        <h2>Weather for {{ weather.city }}, {{ weather.country }}</h2>
+        <div class="d-flex flex-wrap justify-content-center">
+          {% for daily in weather.dailys %}
+            <div class="weather-circle">
+              <h5>{{ daily.name }}</h5>
+              <div class="icon">
+                <i class="fas fa-sun"></i> {{ daily.day }}°C
+              </div>
+              <div class="icon">
+                <i class="fas fa-moon"></i> {{ daily.night }}°C
+              </div>
+              <div class="icon">
+                <i class="fas fa-tint"></i> {{ daily.humidity }}%
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+      
+  <script>
+  // Function to rotate background images
+  function rotateBackground() {
+    const cityImages = [
+      "https://wallpapers.com/images/hd/israel-tel-aviv-skyline-pyptld974nvsq3bz.jpg",
+      "https://c0.wallpaperflare.com/preview/900/707/759/shinjuku-japan-night-tokyo.jpg",
+      "https://wallpapers.com/images/hd/sao-paulo-brazil-sunset-cityscape-ebjtlapeynee12pl.jpg",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQe4mqmdoLfM5DXpPHmBGQ6OCYrFsjU-rfsSw&s",
+      "https://images.pexels.com/photos/1389339/pexels-photo-1389339.jpeg?cs=srgb&dl=pexels-wildlittlethingsphoto-1389339.jpg&fm=jpg",
+      "https://freedesignfile.com/upload/2016/12/Eiffel-Tower-in-Paris-HD-picture-01.jpg",
+      "https://wallpapercat.com/w/full/b/5/1/292677-3840x2160-desktop-4k-london-background-image.jpg",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxkRq3mzpM5SF2RXbC2O25yOby9JMFjYCI4Q&s",
+      "https://www.baltana.com/files/wallpapers-30/Barcelona-City-Background-Wallpapers-94908.jpg",
+      "https://c4.wallpaperflare.com/wallpaper/462/607/710/moscow-winter-cityscape-lights-wallpaper-preview.jpg",
+      "https://images.pexels.com/photos/935474/toronto-beauty-clouds-skyline-935474.jpeg",
+      "https://images4.alphacoders.com/592/thumb-1920-592819.jpg",
+      "https://t4.ftcdn.net/jpg/02/86/31/75/360_F_286317553_ApfLOFzSjv7rXt6aQ46TetRccdmIO25P.jpg",
+      "https://c1.wallpaperflare.com/preview/486/453/219/hollywood-sign-iconic-mountains-los-angeles.jpg",
+      "https://images.unsplash.com/photo-1494522855154-9297ac14b55f?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hpY2Fnb3xlbnwwfHwwfHx8MA%3D%3D",
+      "https://wallpapercat.com/w/full/0/5/4/295117-1920x1200-desktop-hd-sydney-background-photo.jpg",
+      "https://c4.wallpaperflare.com/wallpaper/996/638/569/city-dubai-arabic-dream-burj-khalifa-united-arab-emirates-desktop-wallpaper-hd-2560%C3%971440-wallpaper-preview.jpg",
+      "https://t4.ftcdn.net/jpg/01/46/43/87/360_F_146438747_3XYwVkfnYZuukBZYmDM8xeoqENzyhAqa.jpg"
+    ];
+ let currentIndex = 0;
+
+      function changeBackground() {
+        document.body.style.backgroundImage = `url('${cityImages[currentIndex]}')`;
+        currentIndex = (currentIndex + 1) % cityImages.length; // Cycle through the array
+      }
+
+      // Change background every 60 seconds (60000 milliseconds)
+      setInterval(changeBackground, 60000);
+
+      // Set the initial background
+      changeBackground();
+    }
+
+    // Call the function to start rotating backgrounds
+    rotateBackground();
+
+    function fillSearch(cityName) {
+      document.getElementById('city').value = cityName;
+      document.getElementById('searchForm').submit();
+    }
+
+    function closeWeather() {
+      document.getElementById("weatherContainer").classList.remove("show");
+    }
+
+    {% if weather %}
+      document.getElementById("weatherContainer").classList.add("show");
+    {% endif %}
+  </script>
+</body>
+</html>

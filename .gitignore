@@ -1,0 +1,10 @@
+*
+!**/
+!*.txt
+!.gitignore
+!*.md
+!*.py
+!*.html
+!*.yaml
+!*.yml
+!Dockerfile

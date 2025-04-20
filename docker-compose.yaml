@@ -1,0 +1,17 @@
+services:
+  flask-app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=app.py
+    volumes:
+      - /mnt/ebs-logs:/app/logs  # Mount EBS volume inside the container
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Each log file max 10MB
+        max-file: "5"     # Keep last 5 logs
+
